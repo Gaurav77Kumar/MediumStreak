@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" href="../lib/heatmap.css" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header class="pop-header">
+    <div class="brand">
+      <span class="logo">🔥</span>
+      <span class="name">MediumStreak</span>
+    </div>
+    <button id="openDashboard" class="dash-link" title="Open dashboard">Dashboard →</button>
+  </header>
+
+  <section class="streak-hero">
+    <div class="streak-num"><span id="streakNum">0</span><span class="flame">🔥</span></div>
+    <div class="streak-label" id="streakLabel">day streak</div>
+  </section>
+
+  <section class="today">
+    <div class="today-row">
+      <span>Today</span>
+      <span id="todayText">0 / 10 min</span>
+    </div>
+    <div class="bar"><div id="todayBar" class="bar-fill"></div></div>
+    <div class="today-hint" id="todayHint">Read on Medium to light up today.</div>
+  </section>
+
+  <section class="mini-heatmap">
+    <div id="heatmap"></div>
+    <div class="legend">Less <span class="sw sw0"></span><span class="sw sw1"></span><span class="sw sw2"></span><span class="sw sw3"></span><span class="sw sw4"></span> More</div>
+  </section>
+
+  <section class="stat-row">
+    <div class="stat"><div class="stat-v" id="longestStreak">0</div><div class="stat-k">longest</div></div>
+    <div class="stat"><div class="stat-v" id="totalArticles">0</div><div class="stat-k">articles</div></div>
+    <div class="stat"><div class="stat-v" id="totalMinutes">0</div><div class="stat-k">minutes</div></div>
+    <div class="stat"><div class="stat-v" id="freezeCount">0</div><div class="stat-k">❄️ freezes</div></div>
+  </section>
+
+  <script src="../lib/mock.js"></script>
+  <script src="../lib/streak.js"></script>
+  <script src="../lib/heatmap.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
