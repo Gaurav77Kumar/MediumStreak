@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>MediumStreak — celebration test</title>
+  <link rel="stylesheet" href="../content/celebrate.css" />
+  <style>
+    body {
+      background: #101014;
+      color: #e6edf3;
+      font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      gap: 14px;
+    }
+    button {
+      background: #26a641;
+      color: #06130a;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 10px 22px;
+      cursor: pointer;
+    }
+    p { color: #7d8590; }
+  </style>
+</head>
+<body>
+  <h2>🎉 Celebration test harness</h2>
+  <p>Dev-only page: simulates the "streak secured" moment the extension shows on Medium.</p>
+  <button id="go">Trigger celebration</button>
+  <script src="../content/celebrate.js"></script>
+  <script>
+    document.getElementById("go").addEventListener("click", () => {
+      window.msCelebrate({ minutes: 14, streak: 9 });
+    });
+  </script>
+</body>
+</html>
