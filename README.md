@@ -6,7 +6,7 @@ read, plus streak counters, an article history, insights, badges, and more.
 
 All data stays **local** on your device (`chrome.storage`). No accounts, no servers.
 
-![Overview — streak, heatmap, and article history](assets/overview.png)
+![Overview — streak, heatmap, and article history](assets/Overview.png)
 
 ---
 
