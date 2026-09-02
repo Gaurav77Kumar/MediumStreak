@@ -1,0 +1,49 @@
+/* On-page celebration styles — toast + confetti overlay on Medium articles.
+   Prefixes (ms-) keep clear of Medium's own classes. 
+*/
+
+.ms-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 2147483647;
+  background: #0d1117;
+  color: #e6edf3;
+  border: 1px solid #30363d;
+  border-left: 4px solid #39d353;
+  border-radius: 12px;
+  padding: 14px 18px;
+  max-width: 320px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.ms-toast.show {
+  opacity: 1;
+  transform: none;
+}
+
+.ms-toast-title {
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.ms-toast-sub {
+  color: #7d8590;
+  font-size: 12.5px;
+  margin-top: 4px;
+  line-height: 1.45;
+}
+
+.ms-confetti {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2147483646;
+}

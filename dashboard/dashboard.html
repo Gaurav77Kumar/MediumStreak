@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediumStreak — Dashboard</title>
+  <link rel="stylesheet" href="../lib/heatmap.css" />
+  <link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="logo">🔥</span> MediumStreak</div>
+    <div class="top-actions">
+      <button id="wrappedBtn" class="btn ghost">🎉 Wrapped</button>
+      <button id="shareBtn" class="btn primary">📤 Share card</button>
+      <button id="exportBtn" class="btn ghost">Export data</button>
+      <label class="btn ghost" for="importFile">Import</label>
+      <input type="file" id="importFile" accept="application/json" hidden />
+    </div>
+  </header>
+
+  <div id="ratingBanner" class="rating-banner" hidden>
+    <span class="rating-text">🔥 Enjoying your streak? A ⭐ rating helps other readers find MediumStreak.</span>
+    <div class="rating-actions">
+      <a id="rateLink" class="btn primary sm" target="_blank" rel="noopener">⭐ Rate it</a>
+      <button id="rateLater" class="btn ghost sm">Maybe later</button>
+      <button id="rateNever" class="btn ghost sm">No thanks</button>
+    </div>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="overview">Overview</button>
+    <button class="tab" data-tab="insights">Insights</button>
+    <button class="tab" data-tab="badges">Badges <span id="badgeTabCount" class="tab-count"></span></button>
+    <button class="tab" data-tab="list">Reading list <span id="listTabCount" class="tab-count"></span></button>
+    <button class="tab" data-tab="settings">Settings</button>
+  </nav>
+
+  <main class="wrap">
+    <section class="tab-page active" id="tab-overview">
+      <section class="hero">
+        <div class="hero-main">
+          <div class="hero-streak" id="currentStreak">0</div>
+          <div class="hero-sub">day streak <span id="freezeChip" class="freeze-chip" title="Streak freezes automatically cover missed days">❄️ <b id="freezeCount">0</b></span></div>
+        </div>
+        <div class="stat-cards">
+          <div class="card"><div class="v" id="statLongest">0</div><div class="k">Longest streak</div></div>
+          <div class="card"><div class="v" id="statActiveDays">0</div><div class="k">Active days</div></div>
+          <div class="card"><div class="v" id="statArticles">0</div><div class="k">Articles read</div></div>
+          <div class="card"><div class="v" id="statMinutes">0</div><div class="k">Minutes read</div></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Reading heatmap</h2>
+          <div class="legend">Less <span class="sw sw0"></span><span class="sw sw1"></span><span class="sw sw2"></span><span class="sw sw3"></span><span class="sw sw4"></span> More</div>
+        </div>
+        <div id="heatmap"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Article history</h2>
+          <span class="muted" id="historyCount"></span>
+        </div>
+        <ul id="history" class="history"></ul>
+        <div id="historyEmpty" class="empty" hidden>
+          No articles yet — go read something on Medium and it'll show up here.
+        </div>
+      </section>
+    </section>
+
+    <section class="tab-page" id="tab-insights">
+      <div class="insight-cards">
+        <div class="card"><div class="v" id="insWords">0</div><div class="k">Words read</div></div>
+        <div class="card"><div class="v" id="insAvgArticle">0</div><div class="k">Avg min / article</div></div>
+        <div class="card"><div class="v" id="insAvgDay">0</div><div class="k">Avg min / active day</div></div>
+        <div class="card"><div class="v" id="insLast7">0</div><div class="k">Minutes this week</div></div>
+        <div class="card wide"><div class="v small" id="insBestDay">—</div><div class="k" id="insBestDayLabel">Best reading day</div></div>
+      </div>
+
+      <section class="panel">
+        <div class="panel-head"><h2>What you read about</h2><span class="muted" id="topicMeta"></span></div>
+        <div id="topicChart" class="topic-chart"></div>
+        <div id="topicEmpty" class="empty" hidden>
+          No topics captured yet — they show up as you read articles that have topic tags on Medium.
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Minutes by weekday</h2></div>
+        <div class="chart" id="weekdayChart"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Last 12 weeks</h2></div>
+        <div class="chart" id="weeklyChart"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>Last 12 months</h2></div>
+        <div class="chart" id="monthlyChart"></div>
+      </section>
+    </section>
+
+    <section class="tab-page" id="tab-badges">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Milestones & badges</h2>
+          <span class="muted" id="badgeProgressLabel"></span>
+        </div>
+        <div id="badgeGrid" class="badge-grid"></div>
+      </section>
+    </section>
+
+    <!-- READING LIST -->
+    <section class="tab-page" id="tab-list">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>🔖 Read later</h2>
+          <span class="muted">Right-click any link anywhere → "Save to MediumStreak read later"</span>
+        </div>
+        <ul id="readLater" class="history"></ul>
+        <div id="readLaterEmpty" class="empty" hidden>
+          Nothing queued. Right-click any article link on the web and choose
+          "Save to MediumStreak read later".
+        </div>
+
+        <hr class="list-divider" />
+
+        <div class="panel-head">
+          <h2>⭐ Saved articles</h2>
+          <span class="muted">Star articles from your history to build a reading list</span>
+        </div>
+        <ul id="readingList" class="history"></ul>
+        <div id="listEmpty" class="empty" hidden>
+          Nothing saved yet. Click the ☆ next to an article in your history to save it here.
+        </div>
+      </section>
+    </section>
+
+    <!--  SETTINGS  -->
+    <section class="tab-page" id="tab-settings">
+      <section class="panel">
+        <div class="panel-head"><h2>Settings</h2></div>
+        <div class="settings">
+          <label class="field">
+            <span class="field-label">Daily goal (minutes of reading that mark the day)</span>
+            <input type="number" id="dailyGoalMin" min="1" max="240" step="1" />
+          </label>
+          <label class="field">
+            <span class="field-label">Minimum minutes per article to enter history</span>
+            <input type="number" id="minArticleMin" min="1" max="60" step="1" />
+          </label>
+          <div class="field">
+            <span class="field-label">Reading sites tracked alongside Medium</span>
+            <div id="siteList" class="site-list"></div>
+            <div class="site-add">
+              <input type="text" id="siteInput" placeholder="e.g. substack.com" spellcheck="false" />
+              <button id="addSite" class="btn">Add site</button>
+            </div>
+            <span class="field-hint">Chrome will ask to confirm access for each new site. Works best on article-based blogs (Substack, dev.to, personal blogs).</span>
+          </div>
+          <label class="field row">
+            <input type="checkbox" id="reminderEnabled" />
+            <span class="field-label">Remind me in the evening if the streak isn't secured</span>
+          </label>
+          <label class="field">
+            <span class="field-label">Reminder time</span>
+            <select id="reminderHour">
+              <option value="18">6:00 PM</option>
+              <option value="19">7:00 PM</option>
+              <option value="20">8:00 PM</option>
+              <option value="21">9:00 PM</option>
+              <option value="22">10:00 PM</option>
+            </select>
+          </label>
+          <label class="field row">
+            <input type="checkbox" id="digestEnabled" />
+            <span class="field-label">Weekly reading recap notification</span>
+          </label>
+          <label class="field">
+            <span class="field-label">Recap day & time</span>
+            <div class="inline-selects">
+              <select id="digestDay">
+                <option value="0">Sunday</option>
+                <option value="1">Monday</option>
+                <option value="2">Tuesday</option>
+                <option value="3">Wednesday</option>
+                <option value="4">Thursday</option>
+                <option value="5">Friday</option>
+                <option value="6">Saturday</option>
+              </select>
+              <select id="digestHour">
+                <option value="9">9:00 AM</option>
+                <option value="12">12:00 PM</option>
+                <option value="18">6:00 PM</option>
+                <option value="19">7:00 PM</option>
+                <option value="20">8:00 PM</option>
+                <option value="21">9:00 PM</option>
+              </select>
+            </div>
+          </label>
+          <button id="saveSettings" class="btn primary">Save settings</button>
+          <span id="saveToast" class="toast" hidden>Saved ✓</span>
+
+          <hr />
+          <button id="resetBtn" class="btn danger">Reset all data…</button>
+          <p class="fineprint">
+            All data stays on this device. Nothing is sent anywhere. How streaks work: a day
+            counts once you read your daily goal of <b id="goalEcho">10</b> min on Medium. Miss
+            a day and one ❄️ freeze (earned every 7-day streak) covers it automatically.
+            Badges unlock from your stats and export/import backs up everything, including
+            saved articles and badges.
+          </p>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <!--  SHARE MODAL  -->
+  <div id="shareModal" class="modal" hidden>
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2>Share your streak</h2>
+        <button id="shareClose" class="btn ghost">✕</button>
+      </div>
+      <canvas id="shareCanvas" class="share-canvas"></canvas>
+      <div class="modal-actions">
+        <button id="shareDownload" class="btn primary">Download PNG</button>
+        <span class="muted">1200×630 — perfect for X, LinkedIn, or Discord</span>
+      </div>
+    </div>
+  </div>
+
+  <!--  WRAPPED MODAL  -->
+  <div id="wrappedModal" class="modal" hidden>
+    <div class="modal-box wrapped-box">
+      <div class="modal-head">
+        <h2>Your reading wrapped — last 365 days</h2>
+        <button id="wrappedClose" class="btn ghost">✕</button>
+      </div>
+      <div class="wrapped-scroll">
+        <canvas id="wrappedCanvas" class="wrapped-canvas"></canvas>
+      </div>
+      <div class="modal-actions">
+        <button id="wrappedDownload" class="btn primary">Download PNG</button>
+        <span class="muted">1080×1350 — perfect for Instagram posts & stories</span>
+      </div>
+    </div>
+  </div>
+
+  <script src="../lib/mock.js"></script>
+  <script src="../lib/config.js"></script>
+  <script src="../lib/streak.js"></script>
+  <script src="../lib/heatmap.js"></script>
+  <script src="../lib/badges.js"></script>
+  <script src="../lib/insights.js"></script>
+  <script src="../lib/sharecard.js"></script>
+  <script src="../lib/wrapped.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>
