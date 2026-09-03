@@ -60,7 +60,7 @@ All data stays **local** on your device (`chrome.storage`). No accounts, no serv
 ### Insights
 Words read, per-article/per-day averages, topic breakdown, and reading-by-weekday charts.
 
-![Insights — words read, topics, and weekday charts](assets/insight.png)
+![Insights — words read, topics, and weekday charts](assets/Insight.png)
 
 ### Badges
 13 milestones across streaks, articles, hours, and words read, with unlock dates and progress bars.
