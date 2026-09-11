@@ -10,7 +10,7 @@
   const TICK_MS = 5000;            // accumulate cadence
   const FLUSH_MS = 30 * 1000;      // report cadence
   const URL_CHECK_MS = 1500;       // Medium is an SPA; poll for navigation
-  const MIN_ARTICLE_TEXT = 1500;   // story bodies, not feed cards
+  const MIN_ARTICLE_TEXT = 300;    // fallback heuristic: story bodies, not feed cards
 
   let url = location.href;
   let articleEl = null;
@@ -21,11 +21,19 @@
     window.addEventListener(evt, () => (lastActivity = Date.now()), { passive: true });
   }
 
-  // A story page has an <article> with a real h1 title and a substantial body;
-  // the homepage/feed also has <article> cards, but those are small and h1-less.
+  // A story page is detected by Medium's own markers, not by body-text size:
+  // the title h1 carries data-testid="storyTitle", and every story URL ends in
+  // a hex content id. Body length is unreliable because Medium renders story
+  // text progressively — <article> often holds only the header and the first
+  // screen of paragraphs, so a text-length threshold silently misses many
+  // stories (which meant zero tracked minutes).
   function detectArticle() {
-    const candidates = document.querySelectorAll("article");
-    for (const el of candidates) {
+    const title = document.querySelector('h1[data-testid="storyTitle"]');
+    if (title) {
+      return title.closest("article") || title.closest("section") || document.body;
+    }
+    if (!/\/[0-9a-f]{8,}\/?$/i.test(location.pathname)) return null;
+    for (const el of document.querySelectorAll("article")) {
       if (el.querySelector("h1") && el.textContent.trim().length > MIN_ARTICLE_TEXT) {
         return el;
       }
