@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "MediumStreak",
   "version": "1.1.1",
-  "description": "Turn your Medium reading into a LeetCode-style streak. Read articles, keep the streak alive, watch your heatmap fill up.",
+  "description": "Turn your Medium reading into a streak. Read articles, keep the streak alive, watch your heatmap fill up.",
   "permissions": ["storage", "alarms", "notifications", "contextMenus", "scripting"],
   "optional_host_permissions": ["https://*/*", "http://*/*"],
   "host_permissions": [
