@@ -1,8 +1,10 @@
 # MediumStreak 🔥
 
-A Chrome extension that turns your **Medium reading** into a **LeetCode-style streak** —
-a GitHub-contribution heatmap where each day lights up based on minutes you actually
-read, plus streak counters, an article history, insights, badges, and more.
+
+📦 Chrome Web Store:
+https://chromewebstore.google.com/detail/hmhmagoboicnijknllomkennbappehei
+
+A Privacy First Chrome Extension that that turns Your Medium Reading into a Streak with HeatMaps, Badges, and Reading Insights Where Each Days lights up based on minutes you actually read, plus streak counters, an article history, insights, badges and more.
 
 All data stays **local** on your device (`chrome.storage`). No accounts, no servers.
 
