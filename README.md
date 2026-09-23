@@ -92,16 +92,11 @@ A shareable "year in reading" card — hours read, articles, streaks, top topic,
 
 ---
 
-## Roadmap ideas (v1.2+)
+## Roadmap ideas (v1.3+)
 
-
-- Share card: copy-image-to-clipboard button + open-in-tab preview
-- More configurable article-site profiles
-- Optional cloud sync for users who explicitly opt in
-
-- Friend leaderboards — opt-in groups via invite code (max ~10 friends), Duolingo-style
-      *weekly* league that resets every Sunday, sharing only streak + weekly minutes
-      (needs a tiny backend — Cloudflare Worker + KV)
-
-- Hourly reading rhythm chart ("you read most at 10pm")
+- **Per-site reading stats** — show minutes, articles, topics, and streaks separately for Medium and custom sites.
+- **Smart streak-at-risk reminders** — suggest reading when the daily goal is almost complete and the streak may be missed.
+- **Temporary pause mode** — pause tracking for a selected period, such as during travel or downtime.
+- **Weekly reading challenges** — encourage consistent reading with optional challenges and achievements.
+- **History search and filters** — quickly find past articles by title, topic, date, or website.
 
