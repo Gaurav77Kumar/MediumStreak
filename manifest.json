@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "MediumStreak",
-  "version": "1.1.2",
-  "description": "Turn your Medium reading into a streak. Read articles, keep the streak alive, watch your heatmap fill up.",
+  "version": "1.2.1",
+  "description": "Turn your reading into a streak. Track articles across your favorite sites and watch your heatmap fill up.",
   "permissions": ["storage", "alarms", "notifications", "contextMenus", "scripting"],
   "optional_host_permissions": ["https://*/*", "http://*/*"],
   "host_permissions": [
@@ -14,7 +14,10 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://medium.com/*", "https://*.medium.com/*"],
+      "matches": [
+        "https://medium.com/*",
+        "https://*.medium.com/*"
+      ],
       "js": ["content/reader.js", "content/celebrate.js"],
       "css": ["content/celebrate.css"],
       "run_at": "document_idle"

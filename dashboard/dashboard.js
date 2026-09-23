@@ -8,7 +8,10 @@ const DEFAULT_SETTINGS = {
   digestHour: 18,
   sites: [],
 };
-const BUILTIN_SITES = ["medium.com"];
+const BUILTIN_SITES = [
+  "medium.com",
+];
+let renderedSites = [];
 
 async function loadStore() {
   const {
@@ -18,6 +21,7 @@ async function loadStore() {
     freeze = { count: 0, earned: 0 },
     badges = {},
     readlater = [],
+    meta = {},
   } = await chrome.storage.local.get([
     "days",
     "articles",
@@ -25,8 +29,9 @@ async function loadStore() {
     "freeze",
     "badges",
     "readlater",
+    "meta",
   ]);
-  return { days, articles, settings: { ...DEFAULT_SETTINGS, ...settings }, freeze, badges, readlater };
+  return { days, articles, settings: sanitizeSettings(settings), freeze, badges, readlater, meta };
 }
 
 async function render() {
@@ -64,6 +69,9 @@ async function render() {
     });
     document.getElementById("insBestDay").textContent = `${Math.round(insights.bestDay.minutes)} min`;
     document.getElementById("insBestDayLabel").textContent = `Best reading day — ${nice}`;
+  } else {
+    document.getElementById("insBestDay").textContent = "—";
+    document.getElementById("insBestDayLabel").textContent = "Best reading day";
   }
   renderBarChart(document.getElementById("weekdayChart"), weekdayMinutes(days).map((d) => ({ label: d.label, value: d.minutes })), (v) => `${v} min`);
   renderBarChart(document.getElementById("weeklyChart"), weeklyMinutes(days, 12).map((d) => ({ label: d.label, value: d.minutes })), (v) => `${v} min`);
@@ -78,10 +86,14 @@ async function render() {
   // -- Badges --
   renderReadingList(articles, settings);
   renderReadLater(readlater);
-  const savedCount = articles.filter((a) => a.starred).length + readlater.length;
+  const savedCount = new Set([
+    ...articles.filter((article) => article.starred).map((article) => article.url),
+    ...readlater.map((item) => item.url),
+  ]).size;
   document.getElementById("listTabCount").textContent = savedCount ? String(savedCount) : "";
 
-  renderSites(settings.sites || []);
+  renderedSites = [...(settings.sites || [])];
+  renderSites(renderedSites);
   fillSettingsForm(settings);
   maybeShowRatingPrompt(stats);
 }
@@ -92,13 +104,18 @@ function formatBig(n) {
   return String(n);
 }
 
+function articleReadTime(article) {
+  return article.lastRead || Date.parse(`${article.date}T12:00:00`) || 0;
+}
+
 // -- Overview: history with stars --
 
 function renderHistory(articles, settings) {
-  const minSeconds = settings.minArticleMin * 60;
   const read = articles
-    .filter((a) => a.seconds >= minSeconds)
-    .sort((a, b) => (a.date === b.date ? (b.lastRead || 0) - (a.lastRead || 0) : a.date < b.date ? 1 : -1));
+    .filter((a) => typeof a.counted === "boolean"
+      ? a.counted
+      : a.seconds >= (a.minArticleMin || settings.minArticleMin) * 60)
+    .sort((a, b) => (a.date === b.date ? articleReadTime(b) - articleReadTime(a) : a.date < b.date ? 1 : -1));
 
   document.getElementById("historyCount").textContent = `${read.length} article${read.length === 1 ? "" : "s"}`;
   document.getElementById("historyEmpty").hidden = read.length > 0;
@@ -140,11 +157,11 @@ function renderHistory(articles, settings) {
 }
 
 async function toggleStar(url, date) {
-  const { articles = [] } = await chrome.storage.local.get("articles");
-  const entry = articles.find((a) => a.url === url && a.date === date);
-  if (entry) entry.starred = !entry.starred;
-  await chrome.storage.local.set({ articles });
-  render();
+  try {
+    await chrome.runtime.sendMessage({ type: "toggleStar", url, date });
+  } catch (e) {
+  }
+  await render();
 }
 
 // -- Reading list --
@@ -229,9 +246,14 @@ function renderReadLater(items) {
   list.innerHTML = "";
   document.getElementById("readLaterEmpty").hidden = items.length > 0;
 
-  const sorted = [...items].sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+  const sorted = [...items].sort((a, b) => {
+    const aDone = a.completedAt ? 1 : 0;
+    const bDone = b.completedAt ? 1 : 0;
+    return aDone - bDone || (b.addedAt || 0) - (a.addedAt || 0);
+  });
   for (const r of sorted) {
     const li = document.createElement("li");
+    if (r.completedAt) li.classList.add("completed");
 
     const left = document.createElement("div");
     left.className = "left";
@@ -251,16 +273,17 @@ function renderReadLater(items) {
       month: "short",
       day: "numeric",
     });
-    meta.textContent = `saved ${nice}`;
+    meta.textContent = r.completedAt ? `read ${new Date(r.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}` : `saved ${nice}`;
 
     const actions = document.createElement("span");
     actions.className = "row-actions";
 
     const done = document.createElement("button");
     done.className = "row-btn ok";
-    done.textContent = "✓ read";
-    done.title = "Mark as read (removes from queue)";
-    done.addEventListener("click", () => removeFromReadLater(r.url));
+    done.textContent = r.completedAt ? "Read ✓" : "✓ read";
+    done.title = r.completedAt ? "Already marked as read" : "Mark as read";
+    done.disabled = Boolean(r.completedAt);
+    done.addEventListener("click", () => markReadLaterRead(r.url));
 
     const del = document.createElement("button");
     del.className = "row-btn";
@@ -275,9 +298,19 @@ function renderReadLater(items) {
 }
 
 async function removeFromReadLater(url) {
-  const { readlater = [] } = await chrome.storage.local.get("readlater");
-  await chrome.storage.local.set({ readlater: readlater.filter((r) => r.url !== url) });
-  render();
+  try {
+    await chrome.runtime.sendMessage({ type: "removeReadLater", url });
+  } catch (e) {
+  }
+  await render();
+}
+
+async function markReadLaterRead(url) {
+  try {
+    await chrome.runtime.sendMessage({ type: "markReadLaterRead", url });
+  } catch (e) {
+  }
+  await render();
 }
 
 
@@ -293,6 +326,9 @@ function renderBarChart(el, data, fmt) {
     const col = document.createElement("div");
     col.className = "chart-col" + (d.value <= 0 ? " zero" : "");
     col.title = `${d.label}: ${fmt(d.value)}`;
+    col.tabIndex = 0;
+    col.setAttribute("role", "img");
+    col.setAttribute("aria-label", `${d.label}: ${fmt(d.value)}`);
 
     const pct = d.value <= 0 ? 0 : Math.max(4, (d.value / max) * 100);
 
@@ -316,13 +352,20 @@ function renderBarChart(el, data, fmt) {
     col.addEventListener("mouseleave", () => {
       if (pinned !== col) tip.classList.remove("show");
     });
-    col.addEventListener("click", () => {
+    const toggleTip = () => {
       if (pinned && pinned !== col) {
         pinned.querySelector(".chart-tip").classList.remove("show");
         pinned = null;
       }
       pinned = pinned === col ? null : col;
       tip.classList.toggle("show", pinned === col);
+    };
+    col.addEventListener("click", toggleTip);
+    col.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggleTip();
+      }
     });
 
     el.appendChild(col);
@@ -403,10 +446,12 @@ async function saveSettings() {
     digestDay: clampInt(document.getElementById("digestDay").value, 0, 6, 0),
     digestHour: clampInt(document.getElementById("digestHour").value, 0, 23, 18),
   };
-  await chrome.storage.local.set({ settings });
   try {
-    chrome.runtime.sendMessage({ type: "settingsUpdated" });
-  } catch (e) {
+    const response = await chrome.runtime.sendMessage({ type: "settingsUpdated", settings });
+    if (!response || !response.ok) throw new Error("Settings could not be saved");
+  } catch (error) {
+    alert(`Settings could not be saved: ${error.message || error}`);
+    return;
   }
   const toast = document.getElementById("saveToast");
   toast.hidden = false;
@@ -418,6 +463,132 @@ function clampInt(v, min, max, fallback) {
   const n = parseInt(v, 10);
   if (Number.isNaN(n)) return fallback;
   return Math.min(max, Math.max(min, n));
+}
+
+function isValidDateKey(key) {
+  if (typeof key !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return false;
+  return localDateKey(parseDateKey(key)) === key;
+}
+
+function isHttpUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch (e) {
+    return false;
+  }
+}
+
+function finiteNumber(value, fallback = 0) {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function sanitizeSettings(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const sites = Array.isArray(source.sites)
+    ? [...new Set(source.sites.map(normalizeSite).filter(Boolean).filter((site) => !BUILTIN_SITES.includes(site)))]
+    : [];
+  return {
+    dailyGoalMin: clampInt(source.dailyGoalMin, 1, 240, DEFAULT_SETTINGS.dailyGoalMin),
+    minArticleMin: clampInt(source.minArticleMin, 1, 60, DEFAULT_SETTINGS.minArticleMin),
+    reminderEnabled: typeof source.reminderEnabled === "boolean" ? source.reminderEnabled : DEFAULT_SETTINGS.reminderEnabled,
+    reminderHour: clampInt(source.reminderHour, 0, 23, DEFAULT_SETTINGS.reminderHour),
+    digestEnabled: typeof source.digestEnabled === "boolean" ? source.digestEnabled : DEFAULT_SETTINGS.digestEnabled,
+    digestDay: clampInt(source.digestDay, 0, 6, DEFAULT_SETTINGS.digestDay),
+    digestHour: clampInt(source.digestHour, 0, 23, DEFAULT_SETTINGS.digestHour),
+    sites,
+  };
+}
+
+function sanitizeDays(raw) {
+  const days = {};
+  const today = localDateKey();
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return days;
+  for (const [key, value] of Object.entries(raw)) {
+    if (!isValidDateKey(key) || key > today || !value || typeof value !== "object") continue;
+    days[key] = {
+      minutes: Math.max(0, finiteNumber(value.minutes)),
+      articles: Math.max(0, Math.round(finiteNumber(value.articles))),
+      ...(finiteNumber(value.goalMin, 0) > 0 ? { goalMin: finiteNumber(value.goalMin) } : {}),
+      ...(value.frozen === true ? { frozen: true } : {}),
+    };
+  }
+  return days;
+}
+
+function sanitizeArticles(raw) {
+  if (!Array.isArray(raw)) return [];
+  const today = localDateKey();
+  return raw.slice(0, 5000).flatMap((value) => {
+    if (!value || typeof value !== "object" || !isHttpUrl(value.url) || !isValidDateKey(value.date) || value.date > today) return [];
+    const topics = Array.isArray(value.topics)
+      ? [...new Set(value.topics.filter((topic) => typeof topic === "string").map((topic) => topic.trim().slice(0, 80)).filter(Boolean))].slice(0, 5)
+      : [];
+    return [{
+      url: new URL(value.url).href,
+      title: typeof value.title === "string" ? value.title.slice(0, 200) : "",
+      date: value.date,
+      seconds: Math.max(0, finiteNumber(value.seconds)),
+      words: Math.max(0, Math.round(finiteNumber(value.words))),
+      lastRead: Math.max(0, finiteNumber(value.lastRead, Date.parse(`${value.date}T12:00:00`) || Date.now())),
+      ...(finiteNumber(value.minArticleMin, 0) > 0 ? { minArticleMin: Math.max(1, Math.round(finiteNumber(value.minArticleMin))) } : {}),
+      ...(typeof value.counted === "boolean" ? { counted: value.counted } : {}),
+      starred: value.starred === true,
+      topics,
+    }];
+  });
+}
+
+function sanitizeReadLater(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 2000).flatMap((value) => {
+    if (!value || typeof value !== "object" || !isHttpUrl(value.url)) return [];
+    return [{
+      url: new URL(value.url).href,
+      title: typeof value.title === "string" ? value.title.slice(0, 200) : "",
+      addedAt: Math.max(0, finiteNumber(value.addedAt, Date.now())),
+      ...(finiteNumber(value.completedAt, 0) > 0 ? { completedAt: finiteNumber(value.completedAt) } : {}),
+    }];
+  });
+}
+
+function sanitizeBadges(raw) {
+  const badges = {};
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return badges;
+  const validIds = new Set(BADGES.map((badge) => badge.id));
+  for (const [id, date] of Object.entries(raw)) {
+    if (validIds.has(id) && isValidDateKey(date)) badges[id] = date;
+  }
+  return badges;
+}
+
+function sanitizeMeta(raw) {
+  const meta = {};
+  if (!raw || typeof raw !== "object") return meta;
+  if (isValidDateKey(raw.lastCelebrated)) meta.lastCelebrated = raw.lastCelebrated;
+  if (raw.rating && typeof raw.rating === "object" && ["done", "never", "later"].includes(raw.rating.status)) {
+    meta.rating = { status: raw.rating.status, at: Math.max(0, finiteNumber(raw.rating.at, Date.now())) };
+  }
+  return meta;
+}
+
+function sanitizeBackup(data) {
+  if (!data || typeof data !== "object" || Array.isArray(data) || !data.days || typeof data.days !== "object" || Array.isArray(data.days)) {
+    throw new Error("Not a valid MediumStreak backup");
+  }
+  const freeze = data.freeze && typeof data.freeze === "object" ? data.freeze : {};
+  return {
+    days: sanitizeDays(data.days),
+    articles: sanitizeArticles(data.articles),
+    settings: sanitizeSettings(data.settings),
+    freeze: {
+      count: Math.max(0, Math.round(finiteNumber(freeze.count))),
+      earned: Math.max(0, Math.round(finiteNumber(freeze.earned))),
+    },
+    badges: sanitizeBadges(data.badges),
+    readlater: sanitizeReadLater(data.readlater),
+    meta: sanitizeMeta(data.meta),
+  };
 }
 
 // -- Export / import --
@@ -439,18 +610,21 @@ async function exportData() {
 async function importData(file) {
   try {
     const text = await file.text();
-    const data = JSON.parse(text);
-    if (!data || typeof data !== "object" || !data.days) throw new Error("Not a MediumStreak backup");
+    const data = sanitizeBackup(JSON.parse(text));
+    if (chrome.permissions && typeof chrome.permissions.contains === "function") {
+      const grantedSites = [];
+      for (const site of data.settings.sites) {
+        try {
+          if (await chrome.permissions.contains({ origins: sitePermissionOrigins(site) })) grantedSites.push(site);
+        } catch (e) {
+        }
+      }
+      data.settings.sites = grantedSites;
+    }
     if (!confirm("Importing replaces your current data. Continue?")) return;
-    await chrome.storage.local.set({
-      days: data.days || {},
-      articles: Array.isArray(data.articles) ? data.articles : [],
-      settings: { ...DEFAULT_SETTINGS, ...(data.settings || {}) },
-      freeze: data.freeze || { count: 0, earned: 0 },
-      badges: data.badges || {},
-      readlater: Array.isArray(data.readlater) ? data.readlater : [],
-    });
-    render();
+    const response = await chrome.runtime.sendMessage({ type: "replaceData", data });
+    if (!response || !response.ok) throw new Error("The backup could not be applied");
+    await render();
   } catch (err) {
     alert(`Import failed: ${err.message}`);
   }
@@ -459,23 +633,52 @@ async function importData(file) {
 async function resetAll() {
   if (!confirm("Delete ALL streak data? This cannot be undone.")) return;
   if (!confirm("Really sure? Your whole heatmap will be wiped.")) return;
-  await chrome.storage.local.clear();
-  await chrome.storage.local.set({
-    settings: DEFAULT_SETTINGS,
-    freeze: { count: 0, earned: 0 },
-    badges: {},
-  });
-  render();
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "resetData" });
+    if (!response || !response.ok) throw new Error("The reset could not be completed");
+  } catch (error) {
+    alert(`Reset failed: ${error.message || error}`);
+    return;
+  }
+  await render();
 }
 
 // -- Multi-site management --
 
+function isValidSiteHost(hostname) {
+  const host = hostname.replace(/\.+$/, "");
+  if (!host || host.length > 253 || /\s/.test(host)) return false;
+  if (host.startsWith("[") || host.includes(":")) return /^\[[0-9a-f:.]+\]$/i.test(host);
+  const labels = host.split(".");
+  if (labels.some((label) => label.length > 63 || !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i.test(label))) return false;
+  if (/^\d+(?:\.\d+)+$/.test(host)) {
+    return labels.every((label) => Number(label) <= 255);
+  }
+  return true;
+}
+
 function normalizeSite(raw) {
-  let s = (raw || "").trim().toLowerCase();
-  s = s.replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0];
-  s = s.replace(/\.+$/, "");
-  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(s)) return null;
-  return s;
+  let value = (typeof raw === "string" ? raw : "").trim().replace(/^([a-z][a-z\d+.-]*:\/\/)\*\./i, "$1").replace(/^\*\./, "").replace(/^\/\//, "");
+  if (!value) return null;
+  if (!/^[a-z][a-z\d+.-]*:\/\//i.test(value)) value = `https://${value}`;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    const hostname = url.hostname.toLowerCase().replace(/^www\./, "").replace(/\.+$/, "");
+    return isValidSiteHost(hostname) ? hostname : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function isWildcardSite(site) {
+  return site.includes(".") && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(site) && !site.startsWith("[");
+}
+
+function sitePermissionOrigins(site) {
+  const origins = [`https://${site}/*`, `http://${site}/*`];
+  if (isWildcardSite(site)) origins.push(`https://*.${site}/*`, `http://*.${site}/*`);
+  return origins;
 }
 
 function renderSites(sites) {
@@ -505,46 +708,76 @@ function renderSites(sites) {
   }
 }
 
+async function requestSitePermission(site) {
+  const origins = sitePermissionOrigins(site);
+  if (!chrome.permissions || typeof chrome.permissions.request !== "function") {
+    alert("Chrome permission access is unavailable. Reload the extension and try again.");
+    return false;
+  }
+  try {
+    const granted = await chrome.permissions.request({ origins });
+    if (!granted) {
+      alert(`Chrome did not grant access to ${site}. Click Add site again and choose Allow.`);
+      return false;
+    }
+    if (typeof chrome.permissions.contains === "function") {
+      const hasAccess = await chrome.permissions.contains({ origins });
+      if (!hasAccess) {
+        alert(`Chrome did not retain access to ${site}. Check the extension's site permissions and try again.`);
+        return false;
+      }
+    }
+    return true;
+  } catch (error) {
+    alert(`Could not request access to ${site}: ${error.message || error}`);
+    return false;
+  }
+}
+
 async function addSite() {
   const input = document.getElementById("siteInput");
   const site = normalizeSite(input.value);
   if (!site) {
-    alert("Enter a plain domain like substack.com or dev.to");
+    alert("Enter an HTTP or HTTPS site, such as example.com, localhost, or 127.0.0.1.");
     return;
   }
   if (BUILTIN_SITES.some((b) => site === b || site.endsWith("." + b))) {
     alert("That site is already tracked.");
     return;
   }
-  // Chrome only honors permission requests made with a fresh user gesture, so
-  // request BEFORE any slow awaits (storage reads) can let the gesture age out.
-  if (chrome.permissions && chrome.permissions.request) {
-    const granted = await chrome.permissions.request({
-      origins: [`*://${site}/*`, `*://*.${site}/*`],
-    });
-    if (!granted) return;
-  }
+  if (!await requestSitePermission(site)) return;
 
   const current = await loadStore();
   if ((current.settings.sites || []).includes(site)) {
-    alert("That site is already tracked.");
+    if (!renderedSites.includes(site)) alert("That site is already tracked.");
+    input.value = "";
+    await render();
     return;
   }
 
-  const sites = [...(current.settings.sites || []), site];
-  await chrome.storage.local.set({ settings: { ...current.settings, sites } });
   try {
-    chrome.runtime.sendMessage({ type: "settingsUpdated" });
-  } catch (e) { /* dev/mock */ }
+    const response = await chrome.runtime.sendMessage({ type: "siteAdded", site });
+    if (!response || !response.ok) throw new Error("The site could not be saved");
+  } catch (error) {
+    alert(`Could not add ${site}: ${error.message || error}`);
+    return;
+  }
   input.value = "";
-  render();
+  await render();
 }
 
 async function removeSite(site) {
-  const current = await loadStore();
-  const sites = (current.settings.sites || []).filter((s) => s !== site);
-  await chrome.storage.local.set({ settings: { ...current.settings, sites } });
-  render();
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "siteRemoved", site });
+    if (!response || !response.ok) throw new Error("The site could not be removed");
+    if (chrome.permissions && typeof chrome.permissions.remove === "function") {
+      await chrome.permissions.remove({ origins: sitePermissionOrigins(site) });
+    }
+  } catch (error) {
+    alert(`Could not remove ${site}: ${error.message || error}`);
+    return;
+  }
+  await render();
 }
 
 // -- One-time rating prompt --
@@ -566,9 +799,10 @@ async function maybeShowRatingPrompt(stats) {
 }
 
 async function setRatingStatus(status) {
-  const { meta = {} } = await chrome.storage.local.get("meta");
-  meta.rating = { status, at: Date.now() };
-  await chrome.storage.local.set({ meta });
+  try {
+    await chrome.runtime.sendMessage({ type: "setRatingStatus", status });
+  } catch (e) {
+  }
   document.getElementById("ratingBanner").hidden = true;
 }
 
@@ -592,13 +826,45 @@ function openShareModal() {
 // -- Tabs --
 
 function setupTabs() {
-  document.getElementById("tabs").addEventListener("click", (e) => {
-    const btn = e.target.closest(".tab");
-    if (!btn) return;
-    for (const t of document.querySelectorAll(".tab")) t.classList.toggle("active", t === btn);
-    for (const page of document.querySelectorAll(".tab-page")) {
-      page.classList.toggle("active", page.id === "tab-" + btn.dataset.tab);
+  const container = document.getElementById("tabs");
+  const tabs = [...container.querySelectorAll(".tab")];
+  const activate = (button, focus = false) => {
+    for (const tab of tabs) {
+      const active = tab === button;
+      tab.classList.toggle("active", active);
+      tab.setAttribute("aria-selected", String(active));
+      tab.tabIndex = active ? 0 : -1;
+      const page = document.getElementById("tab-" + tab.dataset.tab);
+      if (page) page.classList.toggle("active", active);
     }
+    if (focus) button.focus();
+  };
+  tabs.forEach((tab, index) => {
+    tab.setAttribute("role", "tab");
+    tab.setAttribute("aria-controls", "tab-" + tab.dataset.tab);
+    tab.tabIndex = index === 0 ? 0 : -1;
+  });
+  container.addEventListener("click", (event) => {
+    const button = event.target.closest(".tab");
+    if (button) activate(button);
+  });
+  container.addEventListener("keydown", (event) => {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const current = tabs.indexOf(document.activeElement);
+    const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (current + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    activate(tabs[next], true);
+  });
+}
+
+let storageRenderTimer = null;
+if (chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== "local" || storageRenderTimer !== null) return;
+    storageRenderTimer = setTimeout(() => {
+      storageRenderTimer = null;
+      render().catch(() => {});
+    }, 250);
   });
 }
 
