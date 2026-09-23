@@ -17,9 +17,12 @@ async function load() {
   const mins = Math.min(today.minutes || 0, s.dailyGoalMin);
   document.getElementById("todayText").textContent = `${(today.minutes || 0).toFixed(1)} / ${s.dailyGoalMin} min`;
   document.getElementById("todayBar").style.width = `${(mins / s.dailyGoalMin) * 100}%`;
+  const left = Math.max(0, Math.ceil(s.dailyGoalMin - (today.minutes || 0)));
   document.getElementById("todayHint").textContent = dayIsActive(today, s)
     ? "Today is lit up. Streak secured. ✅"
-    : `${Math.max(0, Math.ceil(s.dailyGoalMin - (today.minutes || 0)))} more min of reading to keep the streak.`;
+    : stats.currentStreak > 0
+      ? `${left} more min of reading to keep the streak.`
+      : `${left} min of reading starts a new streak.`;
 
   document.getElementById("longestStreak").textContent = stats.longestStreak;
   document.getElementById("totalArticles").textContent = stats.totalArticles;
@@ -34,7 +37,12 @@ async function load() {
   });
 }
 
-load();
+load().catch(() => {});
+if (chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === "local") load().catch(() => {});
+  });
+}
 
 document.getElementById("openDashboard").addEventListener("click", () => {
   chrome.runtime.openOptionsPage();

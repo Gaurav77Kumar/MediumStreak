@@ -66,7 +66,7 @@
         </div>
         <ul id="history" class="history"></ul>
         <div id="historyEmpty" class="empty" hidden>
-          No articles yet — go read something on Medium and it'll show up here.
+          No articles yet — read something on a tracked site and it'll show up here.
         </div>
       </section>
     </section>
@@ -84,7 +84,7 @@
         <div class="panel-head"><h2>What you read about</h2><span class="muted" id="topicMeta"></span></div>
         <div id="topicChart" class="topic-chart"></div>
         <div id="topicEmpty" class="empty" hidden>
-          No topics captured yet — they show up as you read articles that have topic tags on Medium.
+          No topics captured yet — they appear as you read tagged articles on tracked sites.
         </div>
       </section>
 
@@ -154,13 +154,14 @@
             <input type="number" id="minArticleMin" min="1" max="60" step="1" />
           </label>
           <div class="field">
-            <span class="field-label">Reading sites tracked alongside Medium</span>
+             <span class="field-label">Built-in and custom reading sites</span>
+
             <div id="siteList" class="site-list"></div>
             <div class="site-add">
               <input type="text" id="siteInput" placeholder="e.g. substack.com" spellcheck="false" />
               <button id="addSite" class="btn">Add site</button>
             </div>
-            <span class="field-hint">Chrome will ask to confirm access for each new site. Works best on article-based blogs (Substack, dev.to, personal blogs).</span>
+            <span class="field-hint">Enter an HTTP or HTTPS site, such as example.com, substack.com, localhost, or an IP address. Chrome will ask for access; base domains include subdomains and host access covers all ports.</span>
           </div>
           <label class="field row">
             <input type="checkbox" id="reminderEnabled" />
@@ -209,10 +210,12 @@
           <button id="resetBtn" class="btn danger">Reset all data…</button>
           <p class="fineprint">
             All data stays on this device. Nothing is sent anywhere. How streaks work: a day
-            counts once you read your daily goal of <b id="goalEcho">10</b> min on Medium. Miss
+             counts once you read your daily goal of <b id="goalEcho">10</b> min on a tracked site. Miss
+
             a day and one ❄️ freeze (earned every 7-day streak) covers it automatically.
-            Badges unlock from your stats and export/import backs up everything, including
-            saved articles and badges.
+             Badges unlock from your stats and export/import backs up your local reading data,
+             settings, saved articles, and badges. Site permissions remain managed by Chrome.
+
           </p>
         </div>
       </section>
