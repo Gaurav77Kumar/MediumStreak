@@ -1,0 +1,31 @@
+name: Code Check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: JavaScript and manifest check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check JavaScript syntax
+        run: |
+          set -e
+          find . -type f -name '*.js' -not -path './.git/*' -not -path './dist/*' -print0 \
+            | xargs -0 -n1 node --check
+
+      - name: Check manifest
+        run: |
+          node -e "const fs=require('fs'); const manifest=JSON.parse(fs.readFileSync('manifest.json','utf8')); if (!Array.isArray(manifest.host_permissions) || !Array.isArray(manifest.content_scripts?.[0]?.matches)) process.exit(1); if (JSON.stringify(manifest.host_permissions) !== JSON.stringify(manifest.content_scripts[0].matches)) process.exit(1);"
