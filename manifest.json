@@ -3,7 +3,7 @@
   "name": "MediumStreak",
   "version": "1.2.1",
   "description": "Turn your reading into a streak. Track articles across your favorite sites and watch your heatmap fill up.",
-  "permissions": ["storage", "alarms", "notifications", "contextMenus", "scripting"],
+  "permissions": ["storage", "alarms", "notifications", "contextMenus", "scripting", "activeTab"],
   "optional_host_permissions": ["https://*/*", "http://*/*"],
   "host_permissions": [
     "https://medium.com/*",
