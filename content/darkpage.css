@@ -1,0 +1,25 @@
+/* Dark reading mode for the current page, toggled from the popup. The popup
+   inserts this stylesheet via chrome.scripting.insertCSS and toggles the
+   html.ms-page-dark class. The root filter turns the page dark; media is
+   double-inverted back to normal; MediumStreak's own on-page UI is
+   counter-inverted to keep its intended colors. Putting the filter on the
+   root element (not body) keeps position:fixed elements working.
+*/
+
+html.ms-page-dark {
+  filter: invert(1) hue-rotate(180deg);
+  background: #fff; 
+}
+
+html.ms-page-dark img,
+html.ms-page-dark picture,
+html.ms-page-dark video,
+html.ms-page-dark iframe,
+html.ms-page-dark svg {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+html.ms-page-dark .ms-toast,
+html.ms-page-dark .ms-confetti {
+  filter: invert(1) hue-rotate(180deg);
+}

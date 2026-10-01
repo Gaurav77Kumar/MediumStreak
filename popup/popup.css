@@ -61,6 +61,23 @@ body {
   border-color: var(--muted);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dark-toggle {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.dark-toggle.on {
+  color: var(--text);
+  border-color: var(--muted);
+  background: var(--panel);
+}
+
 .streak-hero {
   background: linear-gradient(160deg, #10251a, #0e1a2b);
   border: 1px solid var(--border);

@@ -21,7 +21,7 @@ const MAX_ARTICLES = 1000;
 let mutationQueue = Promise.resolve();
 
 function enqueueMutation(task) {
-  const run = mutationQueue.then(task, task);
+  const run = mutationQueue.then(task, task); 
   mutationQueue = run.catch(() => {});
   return run;
 }
@@ -32,7 +32,7 @@ function boundedSetting(value, fallback, min, max) {
 }
 
 function normalizeSettings(raw) {
-  const settings = raw && typeof raw === "object" ? raw : {};
+  const settings = raw && typeof raw === "object" ? raw : {}; 
   return {
     dailyGoalMin: boundedSetting(settings.dailyGoalMin, DEFAULT_SETTINGS.dailyGoalMin, 1, 240),
     minArticleMin: boundedSetting(settings.minArticleMin, DEFAULT_SETTINGS.minArticleMin, 1, 60),
@@ -45,17 +45,9 @@ function normalizeSettings(raw) {
   };
 }
 
+// Load the entire store from local storage, normalizing settings and providing defaults.
 async function getStore() {
-  const {
-    days = {},
-    articles = [],
-    settings = {},
-    freeze = {
-      count: 0,
-      earned: 0
-    },
-    badges = {}
-  } = await chrome.storage.local.get(["days", "articles", "settings", "freeze", "badges"]);
+  const {days = {},articles = [],settings = {},freeze = {count: 0,earned: 0},badges = {}} = await chrome.storage.local.get(["days", "articles", "settings", "freeze", "badges"]);
   return {
     days,
     articles,
@@ -75,8 +67,6 @@ function totalWordsRead(articles, settings) {
   return articles.reduce((n, article) => (articleIsCounted(article, settings) ? n + (article.words || 0) : n), 0);
 }
 
-// New badge unlocks are checked on every reading tick and at the daily
-// rollover — badges are derived purely from stats, so this stays cheap.
 async function checkBadges() {
   const store = await getStore();
   const stats = {
@@ -98,13 +88,14 @@ async function checkBadges() {
 async function handleReadingTick({ seconds, url, title, words, topics }, sender) {
   if (!seconds || seconds <= 0 || !url) return;
   const store = await getStore();
-  const today = localDateKey();
+  const today = localDateKey(); // YYYY-MM-DD
 
   const day = store.days[today] || { minutes: 0, articles: 0, goalMin: store.settings.dailyGoalMin };
   const prevMinutes = day.minutes;
   day.goalMin = store.settings.dailyGoalMin;
   day.minutes = Math.round((day.minutes + seconds / 60) * 100) / 100;
 
+  // Find an existing article for this URL and date, or create a new one.
   let entry = store.articles.find((a) => a.url === url && a.date === today);
   if (entry) {
     if (entry.minArticleMin === undefined) entry.minArticleMin = store.settings.minArticleMin;
@@ -149,11 +140,7 @@ async function handleReadingTick({ seconds, url, title, words, topics }, sender)
 
   // Goal crossed mid-read: celebrate once per day, in the tab that did it.
   const goal = store.settings.dailyGoalMin;
-  if (
-    prevMinutes < goal &&
-    day.minutes >= goal &&
-    sender && sender.tab && sender.tab.id
-  ) {
+  if (prevMinutes < goal &&day.minutes >= goal &&sender && sender.tab && sender.tab.id ) {
     const { meta = {} } = await chrome.storage.local.get("meta");
     if (meta.lastCelebrated !== today) {
       meta.lastCelebrated = today;
@@ -177,7 +164,7 @@ async function updateBadge() {
   const todayActive = dayIsActive(store.days[localDateKey()], store.settings);
   const text = stats.currentStreak > 0 ? String(stats.currentStreak) : "";
   await chrome.action.setBadgeText({ text });
-  await chrome.action.setBadgeBackgroundColor({ color: todayActive ? "#26a641" : "#57606a" });
+  await chrome.action.setBadgeBackgroundColor({ color: todayActive ? "#24ab41" : "#57606a" });
 }
 
 function notify(title, message) {
@@ -198,7 +185,7 @@ function nextAt(hour, minute = 0) {
 
 // Next occurrence of a given weekday (0 = Sunday) at hour:minute local time.
 function nextDayAt(targetDay, hour, minute = 0) {
-  const now = new Date();
+  const now = new Date(); 
   const t = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0, 0);
   let add = (targetDay - t.getDay() + 7) % 7;
   if (add === 0 && t <= now) add = 7;
@@ -354,6 +341,21 @@ async function injectReader(tabId) {
   }
 }
 
+// Dark reading mode: re-apply the popup toggle on navigations for sites we
+// hold host access to (Medium plus sites added in Settings). Other sites only
+// get the theme while the popup's activeTab grant stays alive.
+async function reapplyPageTheme(tabId, hostname) {
+  const { pageTheme = {} } = await chrome.storage.local.get("pageTheme");
+  if (!pageTheme[hostname]) return;
+  try {
+    await chrome.scripting.insertCSS({ target: { tabId }, files: ["content/darkpage.css"] });
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => document.documentElement.classList.add("ms-page-dark"),
+    });
+  } catch (e) { /* no host permission for this site — nothing to do */ }
+}
+
 function sitePermissionOrigins(site) {
   const origins = [`https://${site}/*`, `http://${site}/*`];
   if (site.includes(".") && !/^\d{1,3}(?:\.\d{1,3}){3}$/.test(site) && !site.startsWith("[")) {
@@ -498,6 +500,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     const u = new URL(url);
     if (u.protocol !== "https:" && u.protocol !== "http:") return;
     if (await isTrackedHost(u.hostname)) await injectReader(tabId);
+    await reapplyPageTheme(tabId, u.hostname);
   } catch (e) {
   }
 });

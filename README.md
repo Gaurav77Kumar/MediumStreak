@@ -58,6 +58,7 @@ All data stays **local** on your device (`chrome.storage`) unless you explicitly
 - **Reading Wrapped** 🎉 — a 1080×1350 "year in reading" card (hours, streaks, top topic) to post
 
 ### ⚙️ Everything else
+- **Dark reading mode** 🌙 — toggle the page you're on dark from the popup (🌙 button beside Dashboard). Remembered per site where the extension has access; on other sites Chrome asks once to keep it dark, and a denial just means dark mode lasts for the current visit.
 - **Rating prompt** — appears once after 5 active days (never nags; "later" re-asks after 30 days). Set your store URL in `lib/config.js`.
 - **Export / import** — JSON backups of your local reading data, settings, badges, and saved items
 
