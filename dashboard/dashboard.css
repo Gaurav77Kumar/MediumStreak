@@ -843,3 +843,106 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+
+.challenge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.challenge-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.challenge-card.done {
+  border-color: var(--green);
+  box-shadow: 0 0 0 1px var(--green) inset;
+}
+
+.challenge-card.unenrolled {
+  opacity: 0.75;
+}
+
+.c-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.c-icon {
+  font-size: 18px;
+}
+
+.c-name {
+  font-weight: 700;
+  font-size: 14px;
+  flex: 1;
+}
+
+.c-status {
+  font-size: 10.5px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+.challenge-card.done .c-status {
+  color: var(--accent);
+  border-color: var(--green);
+}
+
+.c-desc {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.c-progress {
+  height: 7px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.c-progress div {
+  height: 100%;
+  background: linear-gradient(90deg, #006d32, var(--accent));
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.c-count {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.c-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.trophy-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.trophy {
+  background: var(--panel);
+  border: 1px solid var(--green);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+

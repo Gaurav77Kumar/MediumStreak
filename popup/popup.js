@@ -1,13 +1,23 @@
 const DEFAULT_SETTINGS = { dailyGoalMin: 10, minArticleMin: 3 };
 
 async function load() {
-  const { days = {}, settings = {}, freeze = { count: 0, earned: 0 } } = await chrome.storage.local.get([
+  const {
+    days = {},
+    settings = {},
+    freeze = { count: 0, earned: 0 },
+    challenges = {},
+    articles = [],
+  } = await chrome.storage.local.get([
     "days",
     "settings",
     "freeze",
+    "challenges",
+    "articles",
   ]);
   const s = { ...DEFAULT_SETTINGS, ...settings };
   const stats = computeStats(days, s);
+
+  renderChallengeStrip(days, articles, s, challenges);
 
   document.getElementById("streakNum").textContent = stats.currentStreak;
   document.getElementById("streakLabel").textContent =
@@ -47,4 +57,30 @@ if (chrome.storage && chrome.storage.onChanged) {
 document.getElementById("openDashboard").addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
 });
+
+// -- Challenge strip --
+
+function renderChallengeStrip(days, articles, s, rawChallenges) {
+  const state = normalizeChallengeState(rawChallenges);
+  const enrolled = CHALLENGE_DEFS.filter((def) => state.enrolled.includes(def.id));
+  const strip = document.getElementById("challengeStrip");
+  if (!enrolled.length) {
+    strip.hidden = true;
+    return;
+  }
+
+  const incomplete = enrolled.filter((def) => !state.completed.includes(def.id));
+  let text;
+  if (!incomplete.length) {
+    text = `🏆 All ${enrolled.length} weekly challenge${enrolled.length === 1 ? "" : "s"} complete!`;
+  } else {
+    const def = incomplete[0];
+    const p = weekProgress(days, articles, s, state.weekStart, def);
+    text = `${def.icon} ${def.name} — ${p.current.toLocaleString()} / ${p.target.toLocaleString()}${
+      incomplete.length > 1 ? ` · ${incomplete.length - 1} more challenge${incomplete.length - 1 === 1 ? "" : "s"}` : ""
+    }`;
+  }
+  document.getElementById("challengeText").textContent = text;
+  strip.hidden = false;
+}
 
