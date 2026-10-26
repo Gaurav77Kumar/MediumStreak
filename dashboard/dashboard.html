@@ -32,6 +32,7 @@
     <button class="tab active" data-tab="overview">Overview</button>
     <button class="tab" data-tab="insights">Insights</button>
     <button class="tab" data-tab="badges">Badges <span id="badgeTabCount" class="tab-count"></span></button>
+    <button class="tab" data-tab="challenges">Challenges</button>
     <button class="tab" data-tab="list">Reading list <span id="listTabCount" class="tab-count"></span></button>
     <button class="tab" data-tab="settings">Settings</button>
   </nav>
@@ -111,6 +112,28 @@
           <span class="muted" id="badgeProgressLabel"></span>
         </div>
         <div id="badgeGrid" class="badge-grid"></div>
+      </section>
+    </section>
+
+    <!--  CHALLENGES  -->
+    <section class="tab-page" id="tab-challenges">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Weekly challenges</h2>
+          <span class="muted" id="challengeWeekLabel"></span>
+        </div>
+        <div id="challengeGrid" class="challenge-grid"></div>
+        <p class="fineprint">Opt in to the challenges you want to follow — they reset every Monday and your enrollments carry over. Finish one and it lands on your trophy shelf below.</p>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>🏆 Trophy shelf</h2>
+          <span class="muted" id="challengeTrophyLabel"></span>
+        </div>
+        <div id="challengeTrophies" class="trophy-grid"></div>
+        <div id="challengeEmpty" class="empty" hidden>
+          No trophies yet — enroll in a challenge above and finish it this week.
+        </div>
       </section>
     </section>
 
@@ -257,6 +280,7 @@
   <script src="../lib/mock.js"></script>
   <script src="../lib/config.js"></script>
   <script src="../lib/streak.js"></script>
+  <script src="../lib/challenges.js"></script>
   <script src="../lib/heatmap.js"></script>
   <script src="../lib/badges.js"></script>
   <script src="../lib/insights.js"></script>

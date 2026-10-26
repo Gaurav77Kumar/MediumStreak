@@ -40,6 +40,10 @@ All data stays **local** on your device (`chrome.storage`) unless you explicitly
 - **"Streak secured" celebration** 🔥 — the moment you cross your daily goal mid-article, the page shows a toast + confetti (once per day)
 - **Multi-site support** 🌐 — Medium is the only built-in site. Add any other blog, publication, or news website in Settings when you want to track it.
 
+### 🏆 Weekly challenges
+- **Opt-in weekly challenges** 🏆 — Five Days (read on 5 days), Hour of Power (60 min), Five Finishes (5 articles), and 10k Words. Enroll in the Challenges tab, watch live progress bars, and bank trophies on the all-time shelf.
+- **Completion notifications** — finishing a challenge pings you once, and the popup shows your active challenge at a glance.
+
 ### 🔔 Notifications
 - **Evening reminder** notification (opt-in) when today's streak isn't secured
 - **Weekly recap** notification 📊 — minutes read, active days, and streak for the last 7 days (day/time configurable)
@@ -97,7 +101,5 @@ A shareable "year in reading" card — hours read, articles, streaks, top topic,
 
 - **Per-site reading stats** — show minutes, articles, topics, and streaks separately for Medium and custom sites.
 - **Smart streak-at-risk reminders** — suggest reading when the daily goal is almost complete and the streak may be missed.
-- **Temporary pause mode** — pause tracking for a selected period, such as during travel or downtime.
-- **Weekly reading challenges** — encourage consistent reading with optional challenges and achievements.
 - **History search and filters** — quickly find past articles by title, topic, date, or website.
 

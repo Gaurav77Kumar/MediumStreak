@@ -22,6 +22,7 @@ async function loadStore() {
     badges = {},
     readlater = [],
     meta = {},
+    challenges = {},
   } = await chrome.storage.local.get([
     "days",
     "articles",
@@ -30,12 +31,13 @@ async function loadStore() {
     "badges",
     "readlater",
     "meta",
+    "challenges",
   ]);
-  return { days, articles, settings: sanitizeSettings(settings), freeze, badges, readlater, meta };
+  return { days, articles, settings: sanitizeSettings(settings), freeze, badges, readlater, meta, challenges };
 }
 
 async function render() {
-  const { days, articles, settings, freeze, badges, readlater } = await loadStore();
+  const { days, articles, settings, freeze, badges, readlater, challenges } = await loadStore();
   const stats = computeStats(days, settings);
   const insights = summarizeReading(days, articles, settings);
   document.getElementById("currentStreak").textContent = stats.currentStreak;
@@ -82,6 +84,9 @@ async function render() {
   renderBadgeGrid(badges, insights);
   const earnedCount = Object.keys(badges).length;
   document.getElementById("badgeTabCount").textContent = earnedCount ? `${earnedCount}/${BADGES.length}` : "";
+
+  // -- Challenges --
+  renderChallenges(days, articles, settings, challenges);
 
   // -- Badges --
   renderReadingList(articles, settings);
@@ -421,6 +426,97 @@ function renderBadgeGrid(earned, stats) {
   document.getElementById("badgeProgressLabel").textContent = `${earnedCount} of ${BADGES.length} unlocked`;
 }
 
+// -- Weekly challenges --
+
+function challengeTargetUnit(def) {
+  if (def.metric === "minutes") return "min";
+  if (def.metric === "words") return "words";
+  return def.metric === "articles" ? "articles" : "days";
+}
+
+function renderChallenges(days, articles, settings, rawState) {
+  const state = normalizeChallengeState(rawState);
+  document.getElementById("challengeWeekLabel").textContent = `Week of ${weekRangeLabel(state.weekStart)}`;
+
+  const grid = document.getElementById("challengeGrid");
+  grid.innerHTML = "";
+  for (const def of CHALLENGE_DEFS) {
+    const enrolled = state.enrolled.includes(def.id);
+    const done = state.completed.includes(def.id);
+    const p = weekProgress(days, articles, settings, state.weekStart, def);
+
+    const card = document.createElement("div");
+    card.className = "challenge-card" + (done ? " done" : enrolled ? "" : " unenrolled");
+
+    const head = document.createElement("div");
+    head.className = "c-head";
+    const icon = document.createElement("span");
+    icon.className = "c-icon";
+    icon.textContent = def.icon;
+    const name = document.createElement("span");
+    name.className = "c-name";
+    name.textContent = def.name;
+    const status = document.createElement("span");
+    status.className = "c-status";
+    status.textContent = done ? "✅ Done" : enrolled ? "Enrolled" : "Not enrolled";
+    head.append(icon, name, status);
+
+    const desc = document.createElement("div");
+    desc.className = "c-desc";
+    desc.textContent = def.desc;
+
+    const bar = document.createElement("div");
+    bar.className = "c-progress";
+    const fill = document.createElement("div");
+    const pct = Math.min(100, (p.current / p.target) * 100);
+    fill.style.width = `${Math.max(pct, p.current > 0 ? 4 : 0)}%`;
+    bar.appendChild(fill);
+
+    const count = document.createElement("div");
+    count.className = "c-count";
+    count.textContent = `${p.current.toLocaleString()} / ${p.target.toLocaleString()} ${challengeTargetUnit(def)}${done ? " 🏆" : ""}`;
+
+    const actions = document.createElement("div");
+    actions.className = "c-actions";
+    const toggle = document.createElement("button");
+    toggle.className = "btn" + (enrolled ? " ghost" : " primary");
+    toggle.textContent = enrolled ? "Leave challenge" : "Enroll";
+    toggle.addEventListener("click", () => toggleChallenge(def.id, !enrolled));
+    actions.appendChild(toggle);
+
+    card.append(head, desc, bar, count, actions);
+    grid.appendChild(card);
+  }
+
+  // Trophy shelf: how many times each challenge has ever been completed.
+  const trophies = document.getElementById("challengeTrophies");
+  trophies.innerHTML = "";
+  const counts = {};
+  for (const entry of state.log) counts[entry.id] = (counts[entry.id] || 0) + 1;
+  const winners = CHALLENGE_DEFS.filter((def) => counts[def.id]);
+  document.getElementById("challengeEmpty").hidden = winners.length > 0;
+  document.getElementById("challengeTrophyLabel").textContent =
+    winners.length ? `${winners.reduce((n, d) => n + counts[d.id], 0)} all-time completions` : "";
+  for (const def of winners) {
+    const chip = document.createElement("span");
+    chip.className = "trophy";
+    chip.textContent = `${def.icon} ${def.name} ×${counts[def.id]}`;
+    chip.title = `${def.desc} — completed ${counts[def.id]} week${counts[def.id] === 1 ? "" : "s"}`;
+    trophies.appendChild(chip);
+  }
+}
+
+async function toggleChallenge(id, enroll) {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "challengeToggle", id, enroll });
+    if (!response || !response.ok) throw new Error("The challenge could not be updated");
+  } catch (error) {
+    alert(`Could not update the challenge: ${error.message || error}`);
+    return;
+  }
+  await render();
+}
+
 // -- Settings --
 
 function fillSettingsForm(settings) {
@@ -588,6 +684,7 @@ function sanitizeBackup(data) {
     badges: sanitizeBadges(data.badges),
     readlater: sanitizeReadLater(data.readlater),
     meta: sanitizeMeta(data.meta),
+    challenges: normalizeChallengeState(data.challenges),
   };
 }
 

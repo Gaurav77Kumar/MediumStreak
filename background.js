@@ -2,7 +2,7 @@
 handles the midnight rollover (streak freeze earn/spend), the optional
 evening reminder, and milestone badge checks.
 */
-importScripts("lib/streak.js", "lib/badges.js");
+importScripts("lib/streak.js", "lib/badges.js", "lib/challenges.js");
 
 const DEFAULT_SETTINGS = {
   dailyGoalMin: 10, 
@@ -85,6 +85,45 @@ async function checkBadges() {
   );
 }
 
+// Weekly challenges: re-derive progress for the current week and record any
+// newly completed enrolled challenges (once per week, with a notification).
+// Runs on every reading tick and at the rollover (which also carries the
+// state across the Monday week flip via normalizeChallengeState).
+async function getChallengeState() {
+  const { challenges = {} } = await chrome.storage.local.get("challenges");
+  return normalizeChallengeState(challenges);
+}
+
+async function checkChallenges() {
+  const store = await getStore();
+  const state = await getChallengeState();
+  const newly = [];
+  for (const def of CHALLENGE_DEFS) {
+    if (!state.enrolled.includes(def.id) || state.completed.includes(def.id)) continue;
+    if (weekProgress(store.days, store.articles, store.settings, state.weekStart, def).done) newly.push(def);
+  }
+  if (newly.length === 0) return;
+
+  state.completed.push(...newly.map((def) => def.id));
+  for (const def of newly) state.log.push({ week: state.weekStart, id: def.id, at: Date.now() });
+  await chrome.storage.local.set({ challenges: state });
+
+  const last = newly[newly.length - 1];
+  notify(
+    `${last.icon} Challenge complete: ${last.name}`,
+    newly.length > 1 ? `${newly.length} weekly challenges done — what a week!` : last.desc
+  );
+}
+
+async function toggleStoredChallenge(id, enroll) {
+  if (!CHALLENGE_DEFS.some((def) => def.id === id)) return;
+  const state = await getChallengeState();
+  state.enrolled = enroll
+    ? [...new Set([...state.enrolled, id])]
+    : state.enrolled.filter((item) => item !== id);
+  await chrome.storage.local.set({ challenges: state });
+}
+
 async function handleReadingTick({ seconds, url, title, words, topics }, sender) {
   if (!seconds || seconds <= 0 || !url) return;
   const store = await getStore();
@@ -137,6 +176,7 @@ async function handleReadingTick({ seconds, url, title, words, topics }, sender)
   await chrome.storage.local.set({ days: store.days, articles: store.articles });
   await updateBadge();
   await checkBadges();
+  await checkChallenges();
 
   // Goal crossed mid-read: celebrate once per day, in the tab that did it.
   const goal = store.settings.dailyGoalMin;
@@ -224,6 +264,7 @@ async function handleRollover() {
   const { meta = {} } = await chrome.storage.local.get("meta");
   const endKey = localDateKey(addDays(new Date(), -1));
   const keys = Object.keys(store.days).filter(isValidDateKey).sort();
+  // Object.keys() is a method by which we get all the keys of an object in the form of an array
   let cursor;
 
   if (isValidDateKey(meta.lastRolloverDate)) {
@@ -263,6 +304,7 @@ async function handleRollover() {
   await chrome.storage.local.set({ days: store.days, freeze: store.freeze, meta });
   await updateBadge();
   await checkBadges();
+  await checkChallenges();
   await ensureAlarms();
 }
 
@@ -458,6 +500,7 @@ async function replaceStoredData(data) {
   const badges = data.badges && typeof data.badges === "object" && !Array.isArray(data.badges) ? data.badges : {};
   const readlater = Array.isArray(data.readlater) ? data.readlater : [];
   const meta = data.meta && typeof data.meta === "object" && !Array.isArray(data.meta) ? data.meta : {};
+  const challenges = normalizeChallengeState(data.challenges);
   await chrome.storage.local.set({
     days,
     articles,
@@ -466,6 +509,7 @@ async function replaceStoredData(data) {
     badges,
     readlater,
     meta,
+    challenges,
   });
   await ensureAlarms();
   await updateBadge();
@@ -543,6 +587,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg && msg.type === "removeReadLater") {
     enqueueMutation(() => removeStoredReadLater(msg.url)).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+  if (msg && msg.type === "challengeToggle") {
+    enqueueMutation(() => toggleStoredChallenge(msg.id, msg.enroll === true)).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
     return true;
   }
   if (msg && msg.type === "replaceData") {
