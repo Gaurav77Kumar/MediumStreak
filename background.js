@@ -368,13 +368,13 @@ async function isTrackedHost(hostname) {
 
 async function injectReader(tabId) {
   try {
-    await chrome.scripting.insertCSS({ target: { tabId }, files: ["content/celebrate.css"] });
+    await chrome.scripting.insertCSS({ target: { tabId }, files: ["content/celebrate.css", "content/markers.css"] });
   } catch (e) { /* tab may not accept CSS — keep going */ }
   try {
-    // reader.js/celebrate.js self-guard against double injection.
+    // reader.js/celebrate.js/markers.js self-guard against double injection.
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: ["content/reader.js", "content/celebrate.js"],
+      files: ["content/reader.js", "content/celebrate.js", "content/markers.js"],
     });
   } catch (e) { /* restricted frame or race with navigation — ignore */ }
   try {

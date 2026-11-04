@@ -39,6 +39,7 @@ All data stays **local** on your device (`chrome.storage`) unless you explicitly
 - **Streak freeze** ❄️ — earn one per 7-day streak; missed days are auto-covered
 - **"Streak secured" celebration** 🔥 — the moment you cross your daily goal mid-article, the page shows a toast + confetti (once per day)
 - **Multi-site support** 🌐 — Medium is the only built-in site. Add any other blog, publication, or news website in Settings when you want to track it.
+- **Read markers** ✅ — links to articles you've already read get a "✓ Read" badge (with a read-time estimate) right in your feeds and related-article lists, so you always know what's fresh.
 
 ### 🏆 Weekly challenges
 - **Opt-in weekly challenges** 🏆 — Five Days (read on 5 days), Hour of Power (60 min), Five Finishes (5 articles), and 10k Words. Enroll in the Challenges tab, watch live progress bars, and bank trophies on the all-time shelf.

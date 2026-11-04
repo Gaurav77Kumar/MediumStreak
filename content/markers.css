@@ -1,0 +1,23 @@
+/* Read marker styles — badge appended to links of articles already in your
+   history. ms- prefix keeps clear of site CSS; dark tones read well on both
+   light and dark pages (and survive the dark-mode invert). */
+
+.ms-read-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #0e4429;
+  color: #7ee2a8;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  vertical-align: middle;
+  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Title links you've already read get a gentle dim so unread ones pop. */
+a.ms-read-link {
+  opacity: 0.72;
+}
