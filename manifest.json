@@ -18,8 +18,8 @@
         "https://medium.com/*",
         "https://*.medium.com/*"
       ],
-      "js": ["content/reader.js", "content/celebrate.js"],
-      "css": ["content/celebrate.css"],
+      "js": ["content/reader.js", "content/celebrate.js", "content/markers.js"],
+      "css": ["content/celebrate.css", "content/markers.css"],
       "run_at": "document_idle"
     }
   ],
