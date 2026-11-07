@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "MediumStreak",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Turn your reading into a streak. Track articles across your favorite sites and watch your heatmap fill up.",
   "permissions": ["storage", "alarms", "notifications", "contextMenus", "scripting", "activeTab"],
   "optional_host_permissions": ["https://*/*", "http://*/*"],
@@ -18,8 +18,8 @@
         "https://medium.com/*",
         "https://*.medium.com/*"
       ],
-      "js": ["content/reader.js", "content/celebrate.js", "content/markers.js"],
-      "css": ["content/celebrate.css", "content/markers.css"],
+      "js": ["content/reader.js", "content/celebrate.js", "content/markers.js", "content/resurface.js"],
+      "css": ["content/celebrate.css", "content/markers.css", "content/resurface.css"],
       "run_at": "document_idle"
     }
   ],

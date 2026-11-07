@@ -45,6 +45,10 @@ All data stays **local** on your device (`chrome.storage`) unless you explicitly
 - **Opt-in weekly challenges** 🏆 — Five Days (read on 5 days), Hour of Power (60 min), Five Finishes (5 articles), and 10k Words. Enroll in the Challenges tab, watch live progress bars, and bank trophies on the all-time shelf.
 - **Completion notifications** — finishing a challenge pings you once, and the popup shows your active challenge at a glance.
 
+### 🧠 Topic intelligence
+- **Monthly topic goals** 🎯 — pick a topic you care about (suggested from your own most-read topics) and a monthly target; progress auto-counts from articles you actually finish. No manual logging, ever.
+- **History resurfacing** 📚 — while you read, a small chip shows earlier reads on the same topic from your own history — your past context, right where you need it. Dismissible, local-only.
+
 ### 🔔 Notifications
 - **Evening reminder** notification (opt-in) when today's streak isn't secured
 - **Weekly recap** notification 📊 — minutes read, active days, and streak for the last 7 days (day/time configurable)
@@ -98,9 +102,5 @@ A shareable "year in reading" card — hours read, articles, streaks, top topic,
 
 ---
 
-## Roadmap ideas (v1.3+)
 
-- **Per-site reading stats** — show minutes, articles, topics, and streaks separately for Medium and custom sites.
-- **Smart streak-at-risk reminders** — suggest reading when the daily goal is almost complete and the streak may be missed.
-- **History search and filters** — quickly find past articles by title, topic, date, or website.
 

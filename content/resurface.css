@@ -1,0 +1,97 @@
+.ms-resurface {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 2147483647;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.ms-resurface-chip {
+  background: #0d1117;
+  color: #e6edf3;
+  border: 1px solid #30363d;
+  border-left: 3px solid #39d353;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+}
+
+.ms-resurface-chip:hover {
+  border-color: #39d353;
+}
+
+.ms-resurface-pop {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 8px);
+  width: 320px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #0d1117;
+  color: #e6edf3;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+}
+
+.ms-resurface-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: #7d8590;
+  margin-bottom: 6px;
+}
+
+.ms-resurface-close {
+  background: none;
+  border: none;
+  color: #7d8590;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.ms-resurface-close:hover {
+  color: #e6edf3;
+}
+
+.ms-resurface-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 8px;
+  border-radius: 8px;
+}
+
+.ms-resurface-row:hover {
+  background: #161b22;
+}
+
+.ms-resurface-row a {
+  color: #e6edf3;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  line-height: 1.35;
+}
+
+.ms-resurface-row a:hover {
+  color: #7ee2a8;
+}
+
+.ms-resurface-meta {
+  color: #7d8590;
+  font-size: 11px;
+}
+
+html.ms-page-dark .ms-resurface {
+  filter: invert(1) hue-rotate(180deg);
+}

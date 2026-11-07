@@ -25,6 +25,8 @@
   let refreshTimer = null;
   let articleObserver = null;
 
+  window.__msStreak = { getCurrentArticle: () => activeArticle };
+
   function markReadingActivity() {
     hasReadingGesture = true;
     lastActivity = Date.now();
