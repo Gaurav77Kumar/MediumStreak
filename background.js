@@ -2,7 +2,7 @@
 handles the midnight rollover (streak freeze earn/spend), the optional
 evening reminder, and milestone badge checks.
 */
-importScripts("lib/streak.js", "lib/badges.js", "lib/challenges.js");
+importScripts("lib/streak.js", "lib/badges.js", "lib/challenges.js", "lib/insights.js", "lib/goals.js");
 
 const DEFAULT_SETTINGS = {
   dailyGoalMin: 10, 
@@ -124,6 +124,55 @@ async function toggleStoredChallenge(id, enroll) {
   await chrome.storage.local.set({ challenges: state });
 }
 
+// Monthly topic goals: auto-tracked from finished articles whose tags match
+// the goal's topic. Same derive-and-notify pattern as weekly challenges.
+async function getTopicGoalsState() {
+  const { topicGoals = {} } = await chrome.storage.local.get("topicGoals");
+  return normalizeTopicGoalsState(topicGoals);
+}
+
+async function checkTopicGoals() {
+  const store = await getStore();
+  const state = await getTopicGoalsState();
+  const newly = [];
+  for (const goal of state.goals) {
+    if (state.completed.includes(goal.id)) continue;
+    if (topicGoalProgress(store.articles, store.settings, goal, state.month).done) newly.push(goal);
+  }
+  if (newly.length === 0) return;
+
+  state.completed.push(...newly.map((goal) => goal.id));
+  for (const goal of newly) state.log.push({ month: state.month, topic: goal.topic, target: goal.target, at: Date.now() });
+  await chrome.storage.local.set({ topicGoals: state });
+
+  const last = newly[newly.length - 1];
+  notify(
+    `🎯 Topic goal hit: ${last.topic}`,
+    newly.length > 1 ? `${newly.length} topic goals done this month — deep work!` : `${last.target} articles on ${last.topic} this month.`
+  );
+}
+
+async function addStoredTopicGoal(topic, target) {
+  const cleanTopic = String(topic || "").trim().slice(0, 60);
+  if (!cleanTopic) return;
+  const state = await getTopicGoalsState();
+  if (state.goals.some((g) => g.topic.toLowerCase() === cleanTopic.toLowerCase())) return;
+  if (state.goals.length >= GOALS_MAX) return;
+  state.goals.push({
+    id: `tg-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e6).toString(36)}`,
+    topic: cleanTopic,
+    target: Math.min(GOALS_TARGET_MAX, Math.max(1, Math.round(Number(target)) || 1)),
+  });
+  await chrome.storage.local.set({ topicGoals: state });
+}
+
+async function removeStoredTopicGoal(id) {
+  const state = await getTopicGoalsState();
+  state.goals = state.goals.filter((goal) => goal.id !== id);
+  state.completed = state.completed.filter((goalId) => goalId !== id);
+  await chrome.storage.local.set({ topicGoals: state });
+}
+
 async function handleReadingTick({ seconds, url, title, words, topics }, sender) {
   if (!seconds || seconds <= 0 || !url) return;
   const store = await getStore();
@@ -177,6 +226,7 @@ async function handleReadingTick({ seconds, url, title, words, topics }, sender)
   await updateBadge();
   await checkBadges();
   await checkChallenges();
+  await checkTopicGoals();
 
   // Goal crossed mid-read: celebrate once per day, in the tab that did it.
   const goal = store.settings.dailyGoalMin;
@@ -305,6 +355,7 @@ async function handleRollover() {
   await updateBadge();
   await checkBadges();
   await checkChallenges();
+  await checkTopicGoals();
   await ensureAlarms();
 }
 
@@ -368,13 +419,14 @@ async function isTrackedHost(hostname) {
 
 async function injectReader(tabId) {
   try {
-    await chrome.scripting.insertCSS({ target: { tabId }, files: ["content/celebrate.css", "content/markers.css"] });
+    await chrome.scripting.insertCSS({ target: { tabId }, files: ["content/celebrate.css", "content/markers.css", "content/resurface.css"] });
   } catch (e) { /* tab may not accept CSS — keep going */ }
   try {
-    // reader.js/celebrate.js/markers.js self-guard against double injection.
+    // reader.js/celebrate.js/markers.js/resurface.js self-guard against
+    // double injection.
     await chrome.scripting.executeScript({
       target: { tabId },
-      files: ["content/reader.js", "content/celebrate.js", "content/markers.js"],
+      files: ["content/reader.js", "content/celebrate.js", "content/markers.js", "content/resurface.js"],
     });
   } catch (e) { /* restricted frame or race with navigation — ignore */ }
   try {
@@ -501,6 +553,7 @@ async function replaceStoredData(data) {
   const readlater = Array.isArray(data.readlater) ? data.readlater : [];
   const meta = data.meta && typeof data.meta === "object" && !Array.isArray(data.meta) ? data.meta : {};
   const challenges = normalizeChallengeState(data.challenges);
+  const topicGoals = normalizeTopicGoalsState(data.topicGoals);
   await chrome.storage.local.set({
     days,
     articles,
@@ -510,6 +563,7 @@ async function replaceStoredData(data) {
     readlater,
     meta,
     challenges,
+    topicGoals,
   });
   await ensureAlarms();
   await updateBadge();
@@ -591,6 +645,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg && msg.type === "challengeToggle") {
     enqueueMutation(() => toggleStoredChallenge(msg.id, msg.enroll === true)).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+  if (msg && msg.type === "topicGoalAdd") {
+    enqueueMutation(() => addStoredTopicGoal(msg.topic, msg.target)).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+  if (msg && msg.type === "topicGoalRemove") {
+    enqueueMutation(() => removeStoredTopicGoal(msg.id)).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: false }));
     return true;
   }
   if (msg && msg.type === "replaceData") {

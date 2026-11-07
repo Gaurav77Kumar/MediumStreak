@@ -23,6 +23,7 @@ async function loadStore() {
     readlater = [],
     meta = {},
     challenges = {},
+    topicGoals = {},
   } = await chrome.storage.local.get([
     "days",
     "articles",
@@ -32,12 +33,13 @@ async function loadStore() {
     "readlater",
     "meta",
     "challenges",
+    "topicGoals",
   ]);
-  return { days, articles, settings: sanitizeSettings(settings), freeze, badges, readlater, meta, challenges };
+  return { days, articles, settings: sanitizeSettings(settings), freeze, badges, readlater, meta, challenges, topicGoals };
 }
 
 async function render() {
-  const { days, articles, settings, freeze, badges, readlater, challenges } = await loadStore();
+  const { days, articles, settings, freeze, badges, readlater, challenges, topicGoals } = await loadStore();
   const stats = computeStats(days, settings);
   const insights = summarizeReading(days, articles, settings);
   document.getElementById("currentStreak").textContent = stats.currentStreak;
@@ -87,6 +89,9 @@ async function render() {
 
   // -- Challenges --
   renderChallenges(days, articles, settings, challenges);
+
+  // -- Topic goals --
+  renderGoals(articles, settings, topicGoals);
 
   // -- Badges --
   renderReadingList(articles, settings);
@@ -517,6 +522,138 @@ async function toggleChallenge(id, enroll) {
   await render();
 }
 
+// -- Monthly topic goals --
+
+function monthLabel(monthKey) {
+  const [y, m] = monthKey.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+}
+
+function renderGoals(articles, settings, rawState) {
+  const state = normalizeTopicGoalsState(rawState);
+  document.getElementById("goalMonthLabel").textContent = monthLabel(state.month);
+
+  // Suggestion chips from the user's own most-read topics.
+  const suggestions = document.getElementById("goalSuggestions");
+  suggestions.innerHTML = "";
+  const existing = new Set(state.goals.map((g) => g.topic.toLowerCase()));
+  const topics = suggestTopics(articles, settings).filter((t) => !existing.has(t.toLowerCase()));
+  if (!topics.length) {
+    const hint = document.createElement("span");
+    hint.className = "field-hint";
+    hint.textContent = "Suggestions appear here as you read tagged articles.";
+    suggestions.appendChild(hint);
+  }
+  for (const topic of topics) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "suggest-chip";
+    chip.textContent = topic;
+    chip.title = "Use this topic";
+    chip.addEventListener("click", () => {
+      document.getElementById("goalTopic").value = topic;
+      document.getElementById("goalTopic").focus();
+    });
+    suggestions.appendChild(chip);
+  }
+
+  const grid = document.getElementById("goalGrid");
+  grid.innerHTML = "";
+  document.getElementById("goalEmpty").hidden = state.goals.length > 0;
+  for (const goal of state.goals) {
+    const done = state.completed.includes(goal.id);
+    const p = topicGoalProgress(articles, settings, goal, state.month);
+
+    const card = document.createElement("div");
+    card.className = "challenge-card" + (done ? " done" : "");
+
+    const head = document.createElement("div");
+    head.className = "c-head";
+    const icon = document.createElement("span");
+    icon.className = "c-icon";
+    icon.textContent = "🎯";
+    const name = document.createElement("span");
+    name.className = "c-name";
+    name.textContent = goal.topic;
+    const status = document.createElement("span");
+    status.className = "c-status";
+    status.textContent = done ? "✅ Done" : "In progress";
+    head.append(icon, name, status);
+
+    const bar = document.createElement("div");
+    bar.className = "c-progress";
+    const fill = document.createElement("div");
+    const pct = Math.min(100, (p.current / p.target) * 100);
+    fill.style.width = `${Math.max(pct, p.current > 0 ? 4 : 0)}%`;
+    bar.appendChild(fill);
+
+    const count = document.createElement("div");
+    count.className = "c-count";
+    count.textContent = `${p.current} / ${p.target} articles${done ? " 🏆" : ""}`;
+
+    const actions = document.createElement("div");
+    actions.className = "c-actions";
+    const del = document.createElement("button");
+    del.className = "btn ghost";
+    del.textContent = "Remove";
+    del.title = "Delete this goal";
+    del.addEventListener("click", () => removeGoal(goal.id));
+    actions.appendChild(del);
+
+    card.append(head, bar, count, actions);
+    grid.appendChild(card);
+  }
+
+  // Goal history: all-time completions grouped by topic.
+  const log = document.getElementById("goalLog");
+  log.innerHTML = "";
+  const counts = {};
+  for (const entry of state.log) counts[entry.topic] = (counts[entry.topic] || 0) + 1;
+  const winners = Object.keys(counts);
+  document.getElementById("goalLogEmpty").hidden = winners.length > 0;
+  document.getElementById("goalLogLabel").textContent =
+    winners.length ? `${state.log.length} all-time completion${state.log.length === 1 ? "" : "s"}` : "";
+  for (const topic of winners) {
+    const chip = document.createElement("span");
+    chip.className = "trophy";
+    chip.textContent = `🎯 ${topic} ×${counts[topic]}`;
+    log.appendChild(chip);
+  }
+}
+
+async function addGoal() {
+  const topicInput = document.getElementById("goalTopic");
+  const topic = topicInput.value.trim();
+  if (!topic) {
+    alert("Enter a topic first — pick a suggestion or type your own.");
+    return;
+  }
+  try {
+    const response = await chrome.runtime.sendMessage({
+      type: "topicGoalAdd",
+      topic,
+      target: clampInt(document.getElementById("goalTarget").value, 1, 50, 5),
+    });
+    if (!response || !response.ok) throw new Error("The goal could not be saved");
+  } catch (error) {
+    alert(`Could not save the goal: ${error.message || error}`);
+    return;
+  }
+  topicInput.value = "";
+  await render();
+}
+
+async function removeGoal(id) {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: "topicGoalRemove", id });
+    if (!response || !response.ok) throw new Error("The goal could not be removed");
+  } catch (error) {
+    alert(`Could not remove the goal: ${error.message || error}`);
+    return;
+  }
+  await render();
+}
+
 // -- Settings --
 
 function fillSettingsForm(settings) {
@@ -685,6 +822,7 @@ function sanitizeBackup(data) {
     readlater: sanitizeReadLater(data.readlater),
     meta: sanitizeMeta(data.meta),
     challenges: normalizeChallengeState(data.challenges),
+    topicGoals: normalizeTopicGoalsState(data.topicGoals),
   };
 }
 
@@ -989,6 +1127,10 @@ document.getElementById("wrappedDownload").addEventListener("click", () => {
 document.getElementById("addSite").addEventListener("click", addSite);
 document.getElementById("siteInput").addEventListener("keydown", (e) => {
   if (e.key === "Enter") addSite();
+});
+document.getElementById("addGoal").addEventListener("click", addGoal);
+document.getElementById("goalTopic").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") addGoal();
 });
 document.getElementById("rateLink").href = typeof MS_STORE_URL !== "undefined" ? MS_STORE_URL : "#";
 document.getElementById("rateLink").addEventListener("click", () => setRatingStatus("done"));

@@ -33,6 +33,7 @@
     <button class="tab" data-tab="insights">Insights</button>
     <button class="tab" data-tab="badges">Badges <span id="badgeTabCount" class="tab-count"></span></button>
     <button class="tab" data-tab="challenges">Challenges</button>
+    <button class="tab" data-tab="goals">Goals</button>
     <button class="tab" data-tab="list">Reading list <span id="listTabCount" class="tab-count"></span></button>
     <button class="tab" data-tab="settings">Settings</button>
   </nav>
@@ -133,6 +134,40 @@
         <div id="challengeTrophies" class="trophy-grid"></div>
         <div id="challengeEmpty" class="empty" hidden>
           No trophies yet — enroll in a challenge above and finish it this week.
+        </div>
+      </section>
+    </section>
+
+    <!--  GOALS  -->
+    <section class="tab-page" id="tab-goals">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>Monthly topic goals</h2>
+          <span class="muted" id="goalMonthLabel"></span>
+        </div>
+        <div class="goal-add">
+          <span class="field-label">Pick a topic (from your own reading) and how many articles you want this month</span>
+          <div class="goal-suggest" id="goalSuggestions"></div>
+          <div class="goal-form">
+            <input type="text" id="goalTopic" placeholder="Topic, e.g. machine learning" spellcheck="false" />
+            <input type="number" id="goalTarget" min="1" max="50" value="5" title="Articles per month" />
+            <button id="addGoal" class="btn primary">Set goal</button>
+          </div>
+          <span class="field-hint">Progress counts finished articles this month whose tags match the topic — counted automatically, no manual logging. Goals carry over; the bar resets every month.</span>
+        </div>
+        <div id="goalGrid" class="challenge-grid"></div>
+        <div id="goalEmpty" class="empty" hidden>
+          No goals yet — pick a topic above and MediumStreak counts the rest.
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <h2>🎯 Goal history</h2>
+          <span class="muted" id="goalLogLabel"></span>
+        </div>
+        <div id="goalLog" class="trophy-grid"></div>
+        <div id="goalLogEmpty" class="empty" hidden>
+          Completed goals will collect here.
         </div>
       </section>
     </section>
@@ -284,6 +319,7 @@
   <script src="../lib/heatmap.js"></script>
   <script src="../lib/badges.js"></script>
   <script src="../lib/insights.js"></script>
+  <script src="../lib/goals.js"></script>
   <script src="../lib/sharecard.js"></script>
   <script src="../lib/wrapped.js"></script>
   <script src="dashboard.js"></script>

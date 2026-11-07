@@ -946,3 +946,61 @@ body {
   font-weight: 600;
 }
 
+/* -- Monthly topic goals -- */
+
+.goal-add {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.goal-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.suggest-chip {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.suggest-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.goal-form {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.goal-form input[type="text"] {
+  flex: 1;
+  min-width: 200px;
+  max-width: 340px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+
+.goal-form input[type="number"] {
+  width: 80px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+
